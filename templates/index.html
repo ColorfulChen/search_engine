@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Google 搜索仿站</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #fff; margin: 0; }
+        .search-container { max-width: 600px; margin: 100px auto 0 auto; text-align: center; }
+        .logo { font-size: 3em; color: #4285f4; font-weight: bold; margin-bottom: 30px; }
+        .search-box { width: 80%; padding: 12px; font-size: 1.2em; border: 1px solid #dfe1e5; border-radius: 24px; outline: none; }
+        .search-btn { padding: 12px 24px; font-size: 1em; border: none; border-radius: 24px; background: #4285f4; color: #fff; margin-left: 10px; cursor: pointer; }
+        .results { margin-top: 40px; text-align: left; }
+        .result-item { margin-bottom: 30px; }
+        .result-title { font-size: 1.2em; color: #1a0dab; text-decoration: none; }
+        .result-link { color: #006621; font-size: 0.9em; }
+        .result-snippet { color: #545454; }
+        .result-flagged { background: #fff0f0; border-left: 4px solid #e53935; }
+        .result-title.flagged, .result-snippet.flagged { color: #e53935; }
+    </style>
+</head>
+<body>
+    <div class="search-container">
+        <div class="logo">Google</div>
+        <form id="searchForm">
+            <input type="text" id="query" class="search-box" placeholder="请输入搜索内容..." autocomplete="off" />
+            <button type="submit" class="search-btn">搜索</button>
+        </form>
+        <div class="results" id="results"></div>
+        <div id="pagination" style="margin-top:30px;"></div>
+    </div>
+    <script>
+        const form = document.getElementById('searchForm');
+        const resultsDiv = document.getElementById('results');
+        const paginationDiv = document.getElementById('pagination');
+        let currentQuery = '';
+        let currentPage = 1;
+        const RESULTS_PER_PAGE = 10;
+
+        async function fetchResults(q, page) {
+            resultsDiv.innerHTML = '正在搜索...';
+            paginationDiv.innerHTML = '';
+            const start = (page - 1) * RESULTS_PER_PAGE + 1;
+            const res = await fetch(`/search?q=${encodeURIComponent(q)}&start=${start}`);
+            const items = await res.json();
+            if (!items.length) {
+                resultsDiv.innerHTML = '<p>未找到相关结果。</p>';
+                return;
+            }
+            resultsDiv.innerHTML = items.map(item => `
+                <div class="result-item${item.flagged ? ' result-flagged' : ''}">
+                    <a class="result-title${item.flagged ? ' flagged' : ''}" href="${item.link}" target="_blank">${item.title}</a><br>
+                    <span class="result-link">${item.link}</span><br>
+                    <span class="result-snippet${item.flagged ? ' flagged' : ''}">${item.snippet || ''}</span>
+                </div>
+            `).join('');
+            // 简单假设最多显示5页
+            let pagBtns = '';
+            for(let i=1;i<=5;i++){
+                pagBtns += `<button onclick="gotoPage(${i})" ${i===page?'style=\'font-weight:bold\'':''}>${i}</button> `;
+            }
+            paginationDiv.innerHTML = pagBtns;
+        }
+        function gotoPage(page) {
+            currentPage = page;
+            fetchResults(currentQuery, currentPage);
+        }
+        form.onsubmit = function(e) {
+            e.preventDefault();
+            const q = document.getElementById('query').value.trim();
+            if (!q) return;
+            currentQuery = q;
+            currentPage = 1;
+            fetchResults(currentQuery, currentPage);
+        };
+    </script>
+</body>
+</html>
